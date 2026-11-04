@@ -2,26 +2,43 @@
   "name": "RobloxGame",
   "tree": {
     "$className": "DataModel",
-
     "ReplicatedStorage": {
       "Shared": {
         "$path": "src/shared"
       },
       "Remotes": {
         "$className": "Folder",
-        "Drop": { "$className": "RemoteEvent" },
-        "Sold": { "$className": "RemoteEvent" },
-        "Notice": { "$className": "RemoteEvent" },
-        "BuyUpgrade": { "$className": "RemoteEvent" }
+        "Notice": {
+          "$className": "RemoteEvent"
+        },
+        "BuyUpgrade": {
+          "$className": "RemoteEvent"
+        },
+        "Mined": {
+          "$className": "RemoteEvent"
+        },
+        "Opened": {
+          "$className": "RemoteEvent"
+        },
+        "RevealDone": {
+          "$className": "RemoteEvent"
+        },
+        "Lap": {
+          "$className": "RemoteEvent"
+        }
       }
     },
-
     "ServerScriptService": {
       "Server": {
         "$path": "src/server"
+      },
+      "MapTools": {
+        "$className": "Folder",
+        "BuildMap": {
+          "$path": "tools/build_map.luau"
+        }
       }
     },
-
     "StarterPlayer": {
       "StarterPlayerScripts": {
         "Client": {

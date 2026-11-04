@@ -1,27 +1,44 @@
 --!strict
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local Config = require(ReplicatedStorage.Shared.Config)
 local Effects = require(script.Effects)
 local Hud = require(script.Hud)
+local Motion = require(script.Motion)
+local Opening = require(script.Opening)
+local Ring = require(script.Ring)
 
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
-local Drop = Remotes:WaitForChild("Drop") :: RemoteEvent
-local Sold = Remotes:WaitForChild("Sold") :: RemoteEvent
+local Mined = Remotes:WaitForChild("Mined") :: RemoteEvent
+local Opened = Remotes:WaitForChild("Opened") :: RemoteEvent
 local Notice = Remotes:WaitForChild("Notice") :: RemoteEvent
 
 Hud.start()
 Effects.start()
+Motion.start()
+Ring.start()
 
-Drop.OnClientEvent:Connect(function(source: Model, itemId: string, rarity: Config.Rarity)
-	if typeof(source) == "Instance" and source:IsA("Model") and Config.ItemById[itemId] then
-		Effects.drop(source, itemId, rarity)
+Motion.hooks(function(_id: string)
+	Effects.play("Buy", 0.6, 0.8)
+end, function()
+	Effects.play("Coins", 0.5, 1.2)
+end, function(pad: BasePart)
+	Effects.play("Pop", 0.6, 1.3)
+	Effects.burst(pad.Position, pad.Color, 25)
+end)
+
+Mined.OnClientEvent:Connect(function(model: Model, regrow: number)
+	if typeof(model) == "Instance" and model:IsA("Model") and type(regrow) == "number" then
+		Effects.mined(model, regrow)
 	end
 end)
 
-Sold.OnClientEvent:Connect(function(earned: number, soldCount: number, newKeys: { string })
-	Hud.sold(earned, soldCount)
-	Effects.sold(earned, newKeys)
+Opened.OnClientEvent:Connect(function(result: Opening.Result)
+	if type(result) == "table" then
+		task.spawn(Opening.play, result)
+	end
+end)
+Opening.onDone(function()
+	Hud.opened()
 end)
 
 local lastNotice = ""

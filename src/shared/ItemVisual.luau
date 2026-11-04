@@ -105,7 +105,7 @@ function ItemVisual.make(itemId: string, rarity: Config.Rarity, withEffects: boo
 	root.CFrame = CFrame.identity
 	root.Parent = model
 	model.PrimaryPart = root
-	local scale = 1.5 * (if rarity == "Epic" then 1.3 elseif rarity == "Rare" then 1.12 else 1)
+	local scale = 1.5 * (if rarity == "Legendary" then 1.45 elseif rarity == "Epic" then 1.3 elseif rarity == "Rare" then 1.12 else 1)
 	for _, p in parts do
 		p.Size *= scale
 		p.CFrame = CFrame.new(p.CFrame.Position * scale) * p.CFrame.Rotation
@@ -116,8 +116,11 @@ function ItemVisual.make(itemId: string, rarity: Config.Rarity, withEffects: boo
 			p.Material = Enum.Material.Glass
 			p.Reflectance = 0.25
 			p.Color = kind.color:Lerp(Color3.new(1, 1, 1), 0.15)
+		elseif rarity == "Epic" then
+			p.Material = Enum.Material.Neon
 		else
 			p.Material = Enum.Material.Neon
+			p.Color = kind.color:Lerp(Config.RarityInfo.Legendary.color, 0.55)
 		end
 		p.Parent = model
 	end
@@ -131,10 +134,56 @@ function ItemVisual.make(itemId: string, rarity: Config.Rarity, withEffects: boo
 		hl.Parent = model
 		local light = Instance.new("PointLight")
 		light.Color = info.color
-		light.Range = if rarity == "Epic" then 14 else 9
-		light.Brightness = if rarity == "Epic" then 4 else 2
+		local big = rarity == "Epic" or rarity == "Legendary"
+		light.Range = if rarity == "Legendary" then 20 elseif big then 14 else 9
+		light.Brightness = if rarity == "Legendary" then 6 elseif big then 4 else 2
 		light.Parent = root
-		sparkles(root, info.color, if rarity == "Epic" then 40 else 14, if rarity == "Epic" then 0.7 else 0.45)
+		sparkles(root, info.color, if rarity == "Legendary" then 70 elseif big then 40 else 14, if big then 0.7 else 0.45)
+	end
+	return model
+end
+
+-- Ядро из кристалла: шар цвета зоны, размер и блеск по виду кристалла
+function ItemVisual.core(zone: number, kind: Config.CrystalKind, withEffects: boolean): Model
+	local info = Config.Crystals[kind]
+	local color = Config.ZoneColors[zone]
+	local model = Instance.new("Model")
+	model.Name = "Core"
+	local shell = newPart() :: Part
+	shell.Name = "Shell"
+	shell.Shape = Enum.PartType.Ball
+	shell.Size = Vector3.one * info.coreSize
+	shell.Material = Enum.Material.Glass
+	shell.Transparency = 0.35
+	shell.Reflectance = 0.2
+	shell.Color = if kind == "Shining" then color:Lerp(Color3.new(1, 1, 1), 0.5) else color
+	shell.Parent = model
+	local heart = newPart() :: Part
+	heart.Name = "Heart"
+	heart.Shape = Enum.PartType.Ball
+	heart.Size = Vector3.one * info.coreSize * 0.55
+	heart.Material = Enum.Material.Neon
+	heart.Color = shell.Color
+	heart.Parent = model
+	-- грани-осколки вокруг, чтобы читалось как «кристаллическое»
+	for i = 1, (if kind == "Small" then 3 elseif kind == "Big" then 5 else 6) do
+		local a = i * 2.4
+		local shard = newPart()
+		shard.Name = "Facet"
+		shard.Size = Vector3.new(0.35, info.coreSize * 0.5, 0.35)
+		shard.CFrame = CFrame.Angles(a, a * 1.7, a * 0.6) * CFrame.new(0, info.coreSize * 0.42, 0)
+		shard.Material = Enum.Material.Neon
+		shard.Color = shell.Color:Lerp(Color3.new(1, 1, 1), 0.4)
+		shard.Parent = model
+	end
+	model.PrimaryPart = shell
+	if withEffects then
+		local light = Instance.new("PointLight")
+		light.Color = shell.Color
+		light.Range = 10 + info.coreSize * 2
+		light.Brightness = if kind == "Shining" then 4 else 2
+		light.Parent = heart
+		sparkles(heart, shell.Color, if kind == "Shining" then 30 else 10, 0.4)
 	end
 	return model
 end

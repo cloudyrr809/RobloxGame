@@ -1,9 +1,10 @@
 --!strict
--- Всё, что видит и слышит только этот игрок: полёт предметов, всплывашки, звуки,
--- парящий декор, открытые ворота, подсказка «неси на базу».
+-- Всё, что видит и слышит только этот игрок: всплывашки, звуки, кристаллы (дрожь,
+-- раскол, восстановление), парящий декор, открытые ворота, луч «неси к алтарю».
 local CollectionService = game:GetService("CollectionService")
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
+local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local SoundService = game:GetService("SoundService")
@@ -11,7 +12,6 @@ local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
-local ItemVisual = require(ReplicatedStorage.Shared.ItemVisual)
 
 local player = Players.LocalPlayer
 local Effects = {}
@@ -139,28 +139,7 @@ function Effects.shake(power: number, duration: number)
 	shakeUntil = os.clock() + duration
 end
 
--- ===== Полёт предмета из кристалла в рюкзак =====
-local function punchCrystal(source: Model)
-	local crystal = source.PrimaryPart
-	if not crystal then
-		return
-	end
-	local original = crystal:GetAttribute("BaseSize")
-	if typeof(original) ~= "Vector3" then
-		original = crystal.Size
-		crystal:SetAttribute("BaseSize", original)
-	end
-	local size = original :: Vector3
-	crystal.Size = size * 1.1
-	TweenService:Create(crystal, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Size = size }):Play()
-	local halo = source:FindFirstChild("Halo") :: BasePart?
-	if halo then
-		halo.Transparency = 0
-		TweenService:Create(halo, TweenInfo.new(0.4), { Transparency = 0.2 }):Play()
-	end
-end
-
-local function burst(position: Vector3, color: Color3, count: number)
+function Effects.burst(position: Vector3, color: Color3, count: number)
 	local p = Instance.new("Part")
 	p.Anchored = true
 	p.CanCollide = false
@@ -186,103 +165,6 @@ local function burst(position: Vector3, color: Color3, count: number)
 	task.delay(1.2, function()
 		p:Destroy()
 	end)
-end
-
-function Effects.drop(source: Model, itemId: string, rarity: Config.Rarity)
-	local kind = Config.ItemById[itemId]
-	if not kind then
-		return
-	end
-	local info = Config.RarityInfo[rarity]
-	punchCrystal(source)
-	local pivot = source:GetPivot().Position
-	local start = Vector3.new(pivot.X, 7, pivot.Z)
-	local angle = math.random() * math.pi * 2
-	local landing = Vector3.new(pivot.X + math.cos(angle) * 4, 1.2, pivot.Z + math.sin(angle) * 4)
-	local model = ItemVisual.make(itemId, rarity, true)
-	model:PivotTo(CFrame.new(start))
-	model.Parent = Workspace
-
-	if rarity == "Common" then
-		Effects.play("Pop", 0.45, 0.9 + math.random() * 0.3)
-	elseif rarity == "Rare" then
-		Effects.play("Rare", 0.7)
-		burst(start, info.color, 25)
-		Effects.flash(info.color, 0.18)
-	else
-		Effects.play("Epic", 0.8)
-		burst(start, info.color, 60)
-		Effects.flash(info.color, 0.35)
-		Effects.shake(0.35, 0.4)
-	end
-
-	local spin = Vector3.new(math.random() * 6 - 3, 4 + math.random() * 4, math.random() * 6 - 3)
-	local t0 = os.clock()
-	local arc, hover, fly = 0.42, if rarity == "Common" then 0.2 else 0.55, 0.32
-	local connection: RBXScriptConnection
-	local flyFrom: Vector3? = nil
-	connection = RunService.RenderStepped:Connect(function()
-		local t = os.clock() - t0
-		local rot = CFrame.Angles(spin.X * t, spin.Y * t, spin.Z * t)
-		if t < arc then
-			local k = t / arc
-			local pos = start:Lerp(landing, k) + Vector3.new(0, math.sin(k * math.pi) * 5, 0)
-			model:PivotTo(CFrame.new(pos) * rot)
-		elseif t < arc + hover then
-			local k = (t - arc) / hover
-			local bounce = math.abs(math.sin(k * math.pi * 2)) * 0.8 * (1 - k)
-			model:PivotTo(CFrame.new(landing + Vector3.new(0, bounce, 0)) * rot)
-		else
-			local root = rootPart()
-			if not root then
-				connection:Disconnect()
-				model:Destroy()
-				return
-			end
-			if not flyFrom then
-				flyFrom = landing
-			end
-			local k = math.min((t - arc - hover) / fly, 1)
-			local eased = k * k
-			local target = root.Position + Vector3.new(0, 1, 0)
-			local pos = (flyFrom :: Vector3):Lerp(target, eased)
-			model:ScaleTo(math.max(1 - eased * 0.7, 0.05))
-			model:PivotTo(CFrame.new(pos) * rot)
-			if k >= 1 then
-				connection:Disconnect()
-				model:Destroy()
-				if rarity == "Common" then
-					Effects.popup("+1 " .. kind.name, Color3.new(1, 1, 1), false)
-				elseif rarity == "Rare" then
-					Effects.popup("РЕДКИЙ: " .. kind.name .. "!", info.color, true)
-				else
-					Effects.popup("ЭПИК: " .. kind.name .. "!!", info.color, true)
-				end
-			end
-		end
-	end)
-end
-
--- ===== Продажа на базе =====
-function Effects.sold(earned: number, newKeys: { string })
-	if earned > 0 then
-		Effects.play("Coins", 0.6)
-		local root = rootPart()
-		if root then
-			burst(root.Position + Vector3.new(0, 2, 0), Color3.fromRGB(255, 215, 90), 30)
-		end
-	end
-	for i, key in newKeys do
-		task.delay(0.35 * i, function()
-			local itemId, rarity = string.match(key, "^(.-):(.+)$")
-			local kind = itemId and Config.ItemById[itemId]
-			local info = rarity and (Config.RarityInfo :: any)[rarity]
-			if kind and info then
-				Effects.play("Rare", 0.6, 1.15)
-				Effects.popup("В коллекцию: " .. kind.name .. " (" .. info.name .. ")", info.color, true)
-			end
-		end)
-	end
 end
 
 -- ===== Парящий декор =====
@@ -344,7 +226,7 @@ local function refreshGates()
 				end
 				if os.clock() > 3 then
 					Effects.play("Buy", 0.7)
-					burst(barrier.Position, Config.ZoneColors[zone], 80)
+					Effects.burst(barrier.Position, Config.ZoneColors[zone], 80)
 					Effects.flash(Config.ZoneColors[zone], 0.25)
 				end
 			end
@@ -352,24 +234,30 @@ local function refreshGates()
 	end
 end
 
--- ===== Подсказка «неси на базу», когда рюкзак полон =====
+-- ===== Луч «неси к алтарю», пока несёшь ядро =====
 local guide: Beam? = nil
 local guideTarget: Attachment? = nil
 local function refreshGuide()
-	local count = player:GetAttribute("BagCount")
-	local cap = player:GetAttribute("Capacity")
-	local full = type(count) == "number" and type(cap) == "number" and count >= cap
+	local zone = player:GetAttribute("CarryZone")
+	local carrying = type(zone) == "number" and zone > 0
+	-- кнопка алтаря видна только с ядром
+	for _, altar in CollectionService:GetTagged("Altar") do
+		local prompt = altar.Parent and altar.Parent:FindFirstChild("Crack", true) :: ProximityPrompt?
+		if prompt then
+			prompt.Enabled = carrying and player:GetAttribute("Pending") ~= true
+		end
+	end
 	local root = rootPart()
-	if full and root then
+	if carrying and root then
 		if not guideTarget then
-			local floor = CollectionService:GetTagged("BaseFloor")[1] :: BasePart?
-			if not floor then
+			local altar = CollectionService:GetTagged("Altar")[1] :: BasePart?
+			if not altar then
 				return
 			end
 			local att = Instance.new("Attachment")
 			att.Name = "GuideTarget"
-			att.WorldPosition = floor.Position + Vector3.new(0, 4, 0)
-			att.Parent = floor
+			att.WorldPosition = altar.Position + Vector3.new(0, 3, 0)
+			att.Parent = altar
 			guideTarget = att
 		end
 		local from = root:FindFirstChild("GuideFrom") :: Attachment?
@@ -401,6 +289,208 @@ local function refreshGuide()
 	elseif guide then
 		guide.Enabled = false
 	end
+end
+
+-- ===== Кристаллы: что видит этот игрок =====
+type CrystalView = {
+	model: Model,
+	body: BasePart,
+	baseSize: Vector3,
+	prompt: ProximityPrompt,
+	zone: number,
+	kind: Config.CrystalKind,
+	extras: { BasePart },
+}
+type Hold = { model: Model, cf: CFrame, t0: number, tick: number }
+local crystals: { CrystalView } = {}
+local readyAt: { [Model]: number } = {}
+local regrowTime: { [Model]: number } = {}
+local holding: Hold? = nil
+
+local function viewOf(model: Model): CrystalView?
+	for _, c in crystals do
+		if c.model == model then
+			return c
+		end
+	end
+	return nil
+end
+
+local function addCrystal(inst: Instance)
+	if not inst:IsA("Model") or viewOf(inst) then
+		return
+	end
+	-- части модели могут прийти чуть позже самой модели
+	local body = inst:WaitForChild("Body", 10) :: BasePart?
+	local promptPart = inst:WaitForChild("PromptPart", 10)
+	local prompt = promptPart and promptPart:WaitForChild("Mine", 10) :: ProximityPrompt?
+	local zone = inst:GetAttribute("Zone")
+	local kind = inst:GetAttribute("Kind")
+	if not body or not prompt or type(zone) ~= "number" or type(kind) ~= "string" then
+		return
+	end
+	local size = body:GetAttribute("BaseSize")
+	local extras = {}
+	for _, p in inst:GetDescendants() do
+		if p:IsA("BasePart") and p ~= body and p.Name ~= "PromptPart" and p.Name ~= "BeamTop" then
+			p:SetAttribute("BaseTransparency", p.Transparency)
+			table.insert(extras, p)
+		end
+	end
+	table.insert(crystals, {
+		model = inst,
+		body = body,
+		baseSize = if typeof(size) == "Vector3" then size else body.Size,
+		prompt = prompt,
+		zone = zone,
+		kind = kind :: Config.CrystalKind,
+		extras = extras,
+	})
+end
+
+local function gatesOpen(): { [number]: boolean }
+	local raw = player:GetAttribute("Gates")
+	local ok, list = pcall(function()
+		return HttpService:JSONDecode(if type(raw) == "string" then raw else "[]")
+	end)
+	local open: { [number]: boolean } = {}
+	if ok and type(list) == "table" then
+		for _, z in list do
+			open[z] = true
+		end
+	end
+	return open
+end
+
+local function refreshCrystals()
+	local now = os.clock()
+	local zoneAttr = player:GetAttribute("CarryZone")
+	local carrying = type(zoneAttr) == "number" and zoneAttr > 0
+	local strength = player:GetAttribute("Level_Strength")
+	local open = gatesOpen()
+	for _, c in crystals do
+		local hidden = c.kind == "Shining" and c.model:GetAttribute("Hidden") == true
+		local ready = readyAt[c.model] or 0
+		local depleted = c.kind ~= "Shining" and ready > now
+		c.prompt.HoldDuration = Config.mineTime(c.zone, c.kind, if type(strength) == "number" then strength else 0)
+		c.prompt.Enabled = not carrying and not hidden and not depleted and open[c.zone] == true
+		-- вид: исчез / растёт заново / целый
+		local grow = 1
+		if hidden then
+			grow = 0.05
+		elseif depleted then
+			local total = regrowTime[c.model] or 20
+			grow = 0.25 + 0.75 * math.clamp(1 - (ready - now) / total, 0, 1)
+		end
+		local h = holding
+		if not (h and h.model == c.model) then
+			c.body.Size = c.baseSize * grow
+		end
+		c.body.Transparency = if hidden then 1 elseif depleted then 0.55 else 0
+		for _, p in c.extras do
+			local baseT = p:GetAttribute("BaseTransparency")
+			p.Transparency = if hidden then 1 elseif depleted then 0.85 else (if type(baseT) == "number" then baseT else 0)
+		end
+		for _, d in c.model:GetDescendants() do
+			if d:IsA("Beam") or d:IsA("ParticleEmitter") or d:IsA("PointLight") then
+				(d :: any).Enabled = not hidden and not depleted
+			end
+		end
+	end
+end
+
+-- держишь кнопку — кристалл дрожит всё сильнее и звенит выше
+local function onHoldBegan(prompt: ProximityPrompt)
+	if prompt.Name ~= "Mine" then
+		return
+	end
+	local model = prompt:FindFirstAncestorWhichIsA("Model")
+	local view = model and viewOf(model)
+	if not view then
+		return
+	end
+	holding = { model = view.model, cf = view.body.CFrame, t0 = os.clock(), tick = 0 }
+end
+
+local function stopHold()
+	local h = holding
+	if h then
+		local view = viewOf(h.model)
+		if view then
+			view.body.CFrame = h.cf
+			view.body.Size = view.baseSize
+		end
+		holding = nil
+	end
+end
+
+local function updateHold()
+	local h = holding
+	if not h then
+		return
+	end
+	local view = viewOf(h.model)
+	if not view then
+		return
+	end
+	local need = math.max(view.prompt.HoldDuration, 0.1)
+	local k = math.clamp((os.clock() - h.t0) / need, 0, 1)
+	local a = 0.04 + k * 0.18
+	view.body.CFrame = h.cf * CFrame.new((math.random() - 0.5) * a * 2, 0, (math.random() - 0.5) * a * 2) * CFrame.Angles(0, (math.random() - 0.5) * a, (math.random() - 0.5) * a)
+	view.body.Size = view.baseSize * (1 + k * 0.08 + math.sin(os.clock() * 30) * 0.015)
+	local ticks = math.floor(k * 8)
+	if ticks > h.tick then
+		h.tick = ticks
+		Effects.play("Pop", 0.25 + k * 0.2, 0.8 + k * 0.9)
+		Effects.burst(view.body.Position + Vector3.new(0, view.baseSize.Y * 0.3, 0), Config.ZoneColors[view.zone], 4 + ticks * 2)
+	end
+end
+
+function Effects.mined(model: Model, regrow: number)
+	local view = viewOf(model)
+	if not view then
+		return
+	end
+	stopHold()
+	readyAt[model] = os.clock() + regrow
+	regrowTime[model] = regrow
+	local color = Config.ZoneColors[view.zone]
+	local pos = view.body.Position
+	Effects.burst(pos, color, if view.kind == "Small" then 40 else 90)
+	Effects.flash(color, if view.kind == "Shining" then 0.45 else 0.2)
+	Effects.shake(if view.kind == "Small" then 0.2 else 0.45, 0.35)
+	Effects.play(if view.kind == "Small" then "Rare" else "Epic", 0.7, 1.1)
+	Effects.popup(Config.Crystals[view.kind].coreName .. "!", color, true)
+	refreshCrystals()
+end
+
+local function startCrystals()
+	for _, inst in CollectionService:GetTagged("Crystal") do
+		task.spawn(addCrystal, inst)
+	end
+	CollectionService:GetInstanceAddedSignal("Crystal"):Connect(addCrystal)
+	CollectionService:GetInstanceRemovedSignal("Crystal"):Connect(function(inst: Instance)
+		for i, c in crystals do
+			if c.model == inst then
+				table.remove(crystals, i)
+				break
+			end
+		end
+	end)
+	ProximityPromptService.PromptButtonHoldBegan:Connect(onHoldBegan)
+	ProximityPromptService.PromptButtonHoldEnded:Connect(function(prompt: ProximityPrompt)
+		if prompt.Name == "Mine" then
+			stopHold()
+		end
+	end)
+	RunService.RenderStepped:Connect(updateHold)
+	task.spawn(function()
+		while true do
+			refreshCrystals()
+			task.wait(0.25)
+		end
+	end)
+	player:GetAttributeChangedSignal("CarryZone"):Connect(refreshCrystals)
 end
 
 function Effects.start()
@@ -438,8 +528,10 @@ function Effects.start()
 	end)
 	refreshGates()
 	player:GetAttributeChangedSignal("Gates"):Connect(refreshGates)
-	player:GetAttributeChangedSignal("BagCount"):Connect(refreshGuide)
-	player:GetAttributeChangedSignal("Capacity"):Connect(refreshGuide)
+	player:GetAttributeChangedSignal("CarryZone"):Connect(refreshGuide)
+	player:GetAttributeChangedSignal("Pending"):Connect(refreshGuide)
+	refreshGuide()
+	startCrystals()
 	player.CharacterAdded:Connect(function()
 		task.wait(0.5)
 		refreshGuide()

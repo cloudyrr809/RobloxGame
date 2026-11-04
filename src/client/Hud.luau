@@ -1,5 +1,5 @@
 --!strict
--- Интерфейс: монеты, рюкзак, подсказки, панели «Улучшения» и «Коллекция».
+-- Интерфейс: монеты, ядро с жаром, скорость, подсказки, панели «Улучшения» и «Коллекция».
 -- Всё читается из атрибутов игрока, которые ставит сервер.
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
@@ -161,7 +161,7 @@ end
 local Hud = {}
 
 local noticeFn: (string) -> () = function(_text: string) end
-local soldFn: (number, number) -> () = function(_earned: number, _soldCount: number) end
+local openedFn: () -> () = function() end
 
 function Hud.start()
 	local gui = Instance.new("ScreenGui")
@@ -227,36 +227,69 @@ function Hud.start()
 	notice.TextTransparency = 1
 	notice.TextStrokeTransparency = 1
 
-	-- ===== Рюкзак =====
-	local bag = panelFrame("Bag", UDim2.fromOffset(210, 84))
-	bag.AnchorPoint = Vector2.new(0, 0.5)
-	bag.Position = UDim2.new(0, 14, 0.45, 0)
-	bag.Parent = gui
-	local bagTitle = label(bag, "Рюкзак", 18, C.muted)
-	bagTitle.TextXAlignment = Enum.TextXAlignment.Left
-	bagTitle.Position = UDim2.fromOffset(14, 8)
-	bagTitle.Size = UDim2.new(1, -28, 0, 20)
-	local bagCount = label(bag, "0/10", 26)
-	bagCount.TextXAlignment = Enum.TextXAlignment.Right
-	bagCount.Position = UDim2.fromOffset(14, 4)
-	bagCount.Size = UDim2.new(1, -28, 0, 28)
-	local barBack = Instance.new("Frame")
-	barBack.Position = UDim2.fromOffset(14, 40)
-	barBack.Size = UDim2.new(1, -28, 0, 16)
-	barBack.BackgroundColor3 = Color3.fromRGB(25, 18, 45)
-	barBack.BorderSizePixel = 0
-	barBack.Parent = bag
-	corner(barBack, 8)
-	local barFill = Instance.new("Frame")
-	barFill.Size = UDim2.fromScale(0, 1)
-	barFill.BackgroundColor3 = C.green
-	barFill.BorderSizePixel = 0
-	barFill.Parent = barBack
-	corner(barFill, 8)
-	local bagRare = label(bag, "", 15, C.cyan)
-	bagRare.TextXAlignment = Enum.TextXAlignment.Left
-	bagRare.Position = UDim2.fromOffset(14, 60)
-	bagRare.Size = UDim2.new(1, -28, 0, 16)
+	-- ===== Слева: ядро (с жаром) и скорость =====
+	local leftCol = Instance.new("Frame")
+	leftCol.Name = "Left"
+	leftCol.AnchorPoint = Vector2.new(0, 0.5)
+	leftCol.Position = UDim2.new(0, 14, 0.45, 0)
+	leftCol.Size = UDim2.fromOffset(230, 190)
+	leftCol.BackgroundTransparency = 1
+	leftCol.Parent = gui
+	local leftList = Instance.new("UIListLayout")
+	leftList.Padding = UDim.new(0, 10)
+	leftList.Parent = leftCol
+
+	local function bar(parent: Instance, y: number): (Frame, Frame)
+		local back = Instance.new("Frame")
+		back.Position = UDim2.fromOffset(14, y)
+		back.Size = UDim2.new(1, -28, 0, 14)
+		back.BackgroundColor3 = Color3.fromRGB(25, 18, 45)
+		back.BorderSizePixel = 0
+		back.Parent = parent
+		corner(back, 7)
+		local fill = Instance.new("Frame")
+		fill.Size = UDim2.fromScale(0, 1)
+		fill.BackgroundColor3 = C.green
+		fill.BorderSizePixel = 0
+		fill.Parent = back
+		corner(fill, 7)
+		return back, fill
+	end
+
+	local corePanel = panelFrame("Core", UDim2.fromOffset(230, 88))
+	corePanel.Parent = leftCol
+	local coreTitle = label(corePanel, "Ядро", 16, C.muted)
+	coreTitle.TextXAlignment = Enum.TextXAlignment.Left
+	coreTitle.Position = UDim2.fromOffset(14, 6)
+	coreTitle.Size = UDim2.new(1, -28, 0, 18)
+	local coreName = label(corePanel, "нет — добудь у кристалла", 18)
+	coreName.TextXAlignment = Enum.TextXAlignment.Left
+	coreName.Position = UDim2.fromOffset(14, 26)
+	coreName.Size = UDim2.new(1, -28, 0, 22)
+	local heatBack, heatFill = bar(corePanel, 52)
+	local heatText = label(corePanel, "", 13, C.muted)
+	heatText.TextXAlignment = Enum.TextXAlignment.Left
+	heatText.Position = UDim2.fromOffset(14, 68)
+	heatText.Size = UDim2.new(1, -28, 0, 15)
+
+	local speedPanel = panelFrame("Speed", UDim2.fromOffset(230, 88))
+	speedPanel.Parent = leftCol
+	local speedTitle = label(speedPanel, "Скорость", 16, C.muted)
+	speedTitle.TextXAlignment = Enum.TextXAlignment.Left
+	speedTitle.Position = UDim2.fromOffset(14, 6)
+	speedTitle.Size = UDim2.new(1, -28, 0, 18)
+	local speedValue = label(speedPanel, "16", 24, Color3.fromRGB(120, 255, 170))
+	speedValue.TextXAlignment = Enum.TextXAlignment.Right
+	speedValue.Position = UDim2.fromOffset(14, 2)
+	speedValue.Size = UDim2.new(1, -28, 0, 26)
+	local _, lapFill = bar(speedPanel, 34)
+	lapFill.BackgroundColor3 = Color3.fromRGB(255, 140, 215)
+	local lapText = label(speedPanel, "", 13, C.muted)
+	lapText.TextXAlignment = Enum.TextXAlignment.Left
+	lapText.Position = UDim2.fromOffset(14, 52)
+	lapText.Size = UDim2.new(1, -28, 0, 32)
+	lapText.TextWrapped = true
+	lapText.TextYAlignment = Enum.TextYAlignment.Top
 
 	-- ===== Кнопки справа =====
 	local side = Instance.new("Frame")
@@ -373,10 +406,8 @@ function Hud.start()
 	end
 
 	local function effectNow(id: string, level: number): string
-		if id == "Speed" then
-			return "скорость " .. (Config.BaseWalkSpeed + level * Config.SpeedPerLevel)
-		elseif id == "Bag" then
-			return "мест " .. (Config.BaseCapacity + level * Config.CapacityPerLevel)
+		if id == "Strength" then
+			return "время ×" .. string.format("%.2f", Config.StrengthFactor ^ level)
 		else
 			return "шанс ×" .. string.format("%.1f", 1 + level * Config.LuckPerLevel)
 		end
@@ -403,10 +434,10 @@ function Hud.start()
 	end
 
 	-- Коллекция
-	local colPanel, colBody, colHead = modal("Collection", "Коллекция", UDim2.fromOffset(600, 510))
+	local colPanel, colBody, colHead = modal("Collection", "Коллекция", UDim2.fromOffset(680, 470))
 	local grid = Instance.new("UIGridLayout")
-	grid.CellSize = UDim2.fromOffset(128, 92)
-	grid.CellPadding = UDim2.fromOffset(10, 10)
+	grid.CellSize = UDim2.fromOffset(98, 80)
+	grid.CellPadding = UDim2.fromOffset(8, 8)
 	grid.HorizontalAlignment = Enum.HorizontalAlignment.Center
 	grid.SortOrder = Enum.SortOrder.LayoutOrder
 	grid.Parent = colBody
@@ -416,8 +447,7 @@ function Hud.start()
 	local cells: { Cell } = {}
 	local order = 0
 	for _, item in Config.Items do
-		local rarities: { Config.Rarity } = { "Rare", "Epic" }
-		for _, rarity in rarities do
+		for _, rarity in Config.CollectRarities do
 			order += 1
 			local info = Config.RarityInfo[rarity]
 			local cell = Instance.new("Frame")
@@ -496,11 +526,19 @@ function Hud.start()
 	local function refreshHint()
 		local text = ""
 		if tutorial == 1 then
-			text = "Кликай по кристаллам на дорожке!"
+			text = "Подойди к кристаллу и зажми E (на телефоне — кнопку)"
 		elseif tutorial == 2 then
-			text = "Набери рюкзак и вернись на базу"
+			text = "Неси ядро к алтарю на базе, пока оно горячее!"
 		elseif tutorial == 3 then
-			text = "Купи улучшение — жёлтая кнопка справа"
+			local cheapest = math.huge
+			for _, up in Config.Upgrades do
+				cheapest = math.min(cheapest, up.baseCost)
+			end
+			text = if attrNumber("Coins") >= cheapest
+				then "Купи улучшение — жёлтая кнопка справа"
+				else "Добывай ещё ядра — копи " .. cheapest .. " монет на улучшение"
+		elseif tutorial == 4 and attrNumber("SpeedLevel") == 0 then
+			text = "Прыгни на розовое кольцо вокруг базы и беги круг — растёт скорость"
 		else
 			local gates = gatesSet()
 			for z = 2, Config.ZoneCount do
@@ -546,37 +584,71 @@ function Hud.start()
 		refreshHint()
 	end
 
-	local pulse: Tween? = nil
-	local function refreshBag()
-		local count = attrNumber("BagCount")
-		local cap = math.max(attrNumber("Capacity"), 1)
-		bagCount.Text = count .. "/" .. cap
-		local full = count >= cap
-		TweenService:Create(barFill, TweenInfo.new(0.15), { Size = UDim2.fromScale(math.clamp(count / cap, 0, 1), 1) }):Play()
-		barFill.BackgroundColor3 = if full then C.danger elseif count / cap > 0.7 then C.gold else C.green
-		bagTitle.Text = if full then "Рюкзак ПОЛОН" else "Рюкзак"
-		bagTitle.TextColor3 = if full then C.danger else C.muted
-		local rare = attrNumber("BagRare")
-		bagRare.Text = if rare > 0 then "★ редких: " .. rare else ""
-		if full and not pulse then
-			local t = TweenService:Create(bag, TweenInfo.new(0.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), { BackgroundColor3 = Color3.fromRGB(110, 40, 70) })
-			t:Play()
-			pulse = t
-		elseif not full and pulse then
-			pulse:Cancel()
-			pulse = nil
-			bag.BackgroundColor3 = C.panel
+	-- ядро в руках и его жар
+	local function carrying(): boolean
+		return attrNumber("CarryZone") > 0
+	end
+	local function refreshCore()
+		local zone = attrNumber("CarryZone")
+		local kind = player:GetAttribute("CarryKind")
+		if zone > 0 and type(kind) == "string" and Config.Crystals[kind :: Config.CrystalKind] then
+			coreName.Text = Config.Crystals[kind :: Config.CrystalKind].coreName
+			coreName.TextColor3 = Config.ZoneColors[zone]
+			heatBack.Visible = true
+			bump(corePanel)
+			if tutorial == 1 then
+				tutorial = 2
+				refreshHint()
+			end
+		else
+			coreName.Text = "нет — добудь у кристалла"
+			coreName.TextColor3 = C.muted
+			heatBack.Visible = false
+			heatText.Text = ""
 		end
-		if count > 0 and tutorial == 1 then
-			tutorial = 2
+	end
+	local hotColor = Color3.fromRGB(255, 120, 60)
+	local coldColor = Color3.fromRGB(110, 160, 255)
+	RunService.Heartbeat:Connect(function()
+		if not carrying() then
+			return
+		end
+		local start = attrNumber("CarryStart")
+		local total = math.max(attrNumber("HeatTime"), 1)
+		local heat = math.clamp(1 - (Workspace:GetServerTimeNow() - start) / total, 0, 1)
+		heatFill.Size = UDim2.fromScale(heat, 1)
+		heatFill.BackgroundColor3 = coldColor:Lerp(hotColor, heat)
+		heatText.Text = if heat > 0
+			then "жар " .. math.floor(heat * 100) .. "% · удача ×" .. string.format("%.2f", 1 + heat * Config.HeatBonus)
+			else "остыло — неси всё равно"
+	end)
+
+	local function refreshSpeed()
+		local level = attrNumber("SpeedLevel")
+		speedValue.Text = tostring(Config.walkSpeed(level))
+		local need = attrNumber("SpeedNeed")
+		local have = attrNumber("SpeedProgress")
+		local bestLap = attrNumber("BestLap")
+		if level >= Config.SpeedMaxLevel or need <= 0 then
+			lapFill.Size = UDim2.fromScale(1, 1)
+			lapText.Text = "максимум!" .. (if bestLap > 0 then string.format(" · рекорд %.1f с", bestLap) else "")
+		else
+			TweenService:Create(lapFill, TweenInfo.new(0.2), { Size = UDim2.fromScale(math.clamp(have / need, 0, 1), 1) }):Play()
+			lapText.Text = string.format("круги до +%d: %s/%d", Config.SpeedPerLevel, string.format("%g", have), need)
+				.. (if bestLap > 0 then string.format("\nрекорд круга %.1f с", bestLap) else "\nкольцо вокруг базы")
+		end
+		if level > 0 and tutorial == 4 then
+			tutorial = 5
 			refreshHint()
 		end
 	end
 
 	player:GetAttributeChangedSignal("Coins"):Connect(refreshCoins)
 	player:GetAttributeChangedSignal("IncomeMult"):Connect(refreshCoins)
-	player:GetAttributeChangedSignal("BagCount"):Connect(refreshBag)
-	player:GetAttributeChangedSignal("Capacity"):Connect(refreshBag)
+	player:GetAttributeChangedSignal("CarryZone"):Connect(refreshCore)
+	for _, a in { "SpeedLevel", "SpeedProgress", "SpeedNeed", "BestLap" } do
+		player:GetAttributeChangedSignal(a):Connect(refreshSpeed)
+	end
 	player:GetAttributeChangedSignal("Collection"):Connect(refreshCollection)
 	player:GetAttributeChangedSignal("Gates"):Connect(refreshHint)
 	for _, up in Config.Upgrades do
@@ -589,7 +661,8 @@ function Hud.start()
 		end)
 	end
 	refreshCoins()
-	refreshBag()
+	refreshCore()
+	refreshSpeed()
 	refreshCollection()
 	refreshHint()
 	coinText.Text = fmt(math.floor(shownCoins))
@@ -610,28 +683,7 @@ function Hud.start()
 		end)
 	end
 
-	soldFn = function(earned: number, soldCount: number)
-		if earned <= 0 then
-			return
-		end
-		local big = label(gui, "+" .. fmt(earned) .. " монет", 54, C.gold)
-		big.AnchorPoint = Vector2.new(0.5, 0.5)
-		big.Position = UDim2.fromScale(0.5, 0.38)
-		big.Size = UDim2.fromOffset(600, 60)
-		big.TextStrokeTransparency = 0.2
-		big.TextStrokeColor3 = Color3.fromRGB(110, 60, 10)
-		local sub = label(big, "продано предметов: " .. soldCount, 20, C.text)
-		sub.Position = UDim2.fromScale(0, 1)
-		sub.TextStrokeTransparency = 0.4
-		bump(big)
-		TweenService:Create(big, TweenInfo.new(1.6, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Position = UDim2.fromScale(0.5, 0.3) }):Play()
-		task.delay(1.1, function()
-			TweenService:Create(big, TweenInfo.new(0.5), { TextTransparency = 1, TextStrokeTransparency = 1 }):Play()
-			TweenService:Create(sub, TweenInfo.new(0.5), { TextTransparency = 1, TextStrokeTransparency = 1 }):Play()
-		end)
-		task.delay(1.7, function()
-			big:Destroy()
-		end)
+	openedFn = function()
 		if tutorial <= 2 then
 			tutorial = 3
 			refreshHint()
@@ -643,8 +695,9 @@ function Hud.notice(text: string)
 	noticeFn(text)
 end
 
-function Hud.sold(earned: number, soldCount: number)
-	soldFn(earned, soldCount)
+-- ядро расколото (для подсказок новичку)
+function Hud.opened()
+	openedFn()
 end
 
 return Hud
