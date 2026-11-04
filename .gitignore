@@ -1,0 +1,13 @@
+# Project place file
+/RobloxGame.rbxlx
+
+# Roblox Studio lock files
+/*.rbxlx.lock
+/*.rbxl.lock
+
+sourcemap.json
+
+# Описания Roblox API, скачиваются tools\check.ps1
+/tools/globalTypes.d.luau
+# Кэш стандартной библиотеки Roblox для selene
+roblox.yml

@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "skills": {
+    "roblox-characters": {
+      "source": "gamedev-skills/awesome-gamedev-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/other-engines/roblox-characters/SKILL.md",
+      "computedHash": "db42c1ce7feb87982d3b2a99e086aa0f240907e9bdda75078fbc54c375c5e1c7",
+      "installMode": "copy"
+    },
+    "roblox-datastores": {
+      "source": "gamedev-skills/awesome-gamedev-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/other-engines/roblox-datastores/SKILL.md",
+      "computedHash": "625a20184d9bf55a4f90a8ee60c283b8fb819cc7f2ad1091bf307d408b2c24a6",
+      "installMode": "copy"
+    },
+    "roblox-luau": {
+      "source": "gamedev-skills/awesome-gamedev-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/other-engines/roblox-luau/SKILL.md",
+      "computedHash": "fc8c84463e2d417cce3f0c0bf2d334bab77f83c2ed75627dc63cae18a976ed23",
+      "installMode": "copy"
+    },
+    "roblox-networking": {
+      "source": "gamedev-skills/awesome-gamedev-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/other-engines/roblox-networking/SKILL.md",
+      "computedHash": "076fc2bf03bbdf16e95b196131da15c38291e7be98a7e424ef7f4e4c3e32c673",
+      "installMode": "copy"
+    },
+    "roblox-physics": {
+      "source": "gamedev-skills/awesome-gamedev-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/other-engines/roblox-physics/SKILL.md",
+      "computedHash": "deb267d11a2972affb4ce0a36a764aee3de590204597802cd3b0c5e7e7b0b134",
+      "installMode": "copy"
+    },
+    "roblox-simulator-economy": {
+      "source": "gamedev-skills/awesome-gamedev-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/other-engines/roblox-simulator-economy/SKILL.md",
+      "computedHash": "510dcf69f23e815b38bb7ec95069ec3c602e133b997e37a7f8dac377d28ecf0c",
+      "installMode": "copy"
+    },
+    "roblox-studio-workflow": {
+      "source": "gamedev-skills/awesome-gamedev-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/other-engines/roblox-studio-workflow/SKILL.md",
+      "computedHash": "1370f7377c49f09caf7717c1ac00837505e4be04d29160d96a1012085469a3b1",
+      "installMode": "copy"
+    },
+    "roblox-ui": {
+      "source": "gamedev-skills/awesome-gamedev-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/other-engines/roblox-ui/SKILL.md",
+      "computedHash": "d74afdae9aa479874ace9163ee5e2192136ba54d9b909cedbd2fe745983267a1",
+      "installMode": "copy"
+    }
+  }
+}
